@@ -1,0 +1,35 @@
+const express = require('express');
+const bodyParser = require('body-parser'); // это middleware
+const mongoose = require('mongoose');
+const routes = require('./routes/index');
+// const path = require('path');
+
+const { PORT = 3000 } = process.env;
+
+mongoose.connect('mongodb://127.0.0.1:27017/mydatabase', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  family: 4,
+}).then(() => {
+  console.log('connected to db');
+});
+
+const app = express();
+
+// app.use(express.static(path.join(__dirname, 'public'))); // подключаем фронт
+
+app.use((req, res, next) => {
+  req.user = {
+    _id: '649804fbccc787e3364a11c4', // вставьте сюда _id созданного в предыдущем пункте пользователя
+  };
+
+  next();
+});
+
+app.use(bodyParser.json()); // то, что позволит обрабатывать json при методе post
+
+app.use(routes); // Подключаем роуты
+
+app.listen(3000, () => {
+  console.log(`Server start on port ${PORT}`);
+});
