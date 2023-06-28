@@ -71,9 +71,13 @@ const updateAvatar = (req, res) => {
   return User.findByIdAndUpdate(
     req.user._id,
     { avatar },
+    {
+      new: true,
+      runValidators: true,
+    },
   )
     .then((updateAvatarUser) => {
-      res.status(http2.ok).send(updateAvatarUser.avatar);
+      res.status(http2.ok).send(updateAvatarUser);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {

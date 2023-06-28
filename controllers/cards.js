@@ -51,9 +51,14 @@ const likeCard = (req, res) => {
       if (!card) {
         return res.status(http2.badRequest).send({ message: 'Card not found' });
       }
-      return res.status(http2.ok).send({ message: 'Вы лайкнули фото' });
+      return res.status(http2.ok).send(card);
     })
-    .catch(() => { res.status(http2.serverError).send({ message: 'Server Error' }); });
+    .catch((card) => {
+      if (req.params.cardId !== card) {
+        return res.status(http2.badRequest).send({ message: 'Card not found' });
+      }
+      return res.status(http2.serverError).send({ message: 'Server Error' });
+    });
 };
 
 // dislikeCard Card
@@ -69,7 +74,12 @@ const dislikeCard = (req, res) => {
       }
       return res.status(http2.ok).send(card);
     })
-    .catch(() => { res.status(http2.serverError).send({ message: 'Server Error' }); });
+    .catch((card) => {
+      if (req.params.cardId !== card) {
+        return res.status(http2.badRequest).send({ message: 'Card not found' });
+      }
+      return res.status(http2.serverError).send({ message: 'Server Error' });
+    });
 };
 
 module.exports = {
