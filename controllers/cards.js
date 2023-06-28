@@ -54,8 +54,11 @@ const likeCard = (req, res) => {
       return res.status(http2.ok).send(card);
     })
     .catch((card) => {
+      if (req.params.cardId.length < 20) {
+        return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
+      }
       if (req.params.cardId !== card) {
-        return res.status(http2.badRequest).send({ message: 'Card not found' });
+        return res.status(http2.notFound).send({ message: 'Несуществующий id карточки' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
     });
@@ -75,8 +78,11 @@ const dislikeCard = (req, res) => {
       return res.status(http2.ok).send(card);
     })
     .catch((card) => {
+      if (req.params.cardId.length < 20) {
+        return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
+      }
       if (req.params.cardId !== card) {
-        return res.status(http2.badRequest).send({ message: 'Card not found' });
+        return res.status(http2.notFound).send({ message: 'Несуществующий id карточки' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
     });
