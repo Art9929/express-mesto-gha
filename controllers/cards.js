@@ -1,23 +1,23 @@
-const http2 = require('node:http2');
+const http2 = require('../errors/index');
 const Card = require('../models/card');
 
 // all Cards
 const getCards = (req, res) => Card.find({}).then((cards) => {
-  res.status(http2.constants.HTTP_STATUS_OK).send(cards);
+  res.status(http2.ok).send(cards);
 });
 
 // create Card
 const createCard = (req, res) => {
   const { name, link } = req.body; // данные, которые отправляем
   return Card.create({ name, link, owner: req.user._id })
-    .then((newCard) => { res.status(http2.constants.HTTP_STATUS_CREATED).send(newCard); })
+    .then((newCard) => { res.status(http2.created).send(newCard); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
+        return res.status(http2.badRequest).send({
           message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
         });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
@@ -28,15 +28,15 @@ const deleteCardById = (req, res) => {
   return Card.findByIdAndRemove(cardId)
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'Card not found' });
+        return res.status(http2.notFound).send({ message: 'Card not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_OK).send({ message: 'Карточка удалена!' });
+      return res.status(http2.ok).send({ message: 'Карточка удалена!' });
     })
     .catch((card) => {
       if (cardId !== card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'Card not found' });
+        return res.status(http2.badRequest).send({ message: 'Card not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
@@ -49,11 +49,11 @@ const likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'Card not found' });
+        return res.status(http2.badRequest).send({ message: 'Card not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_OK).send({ message: 'Вы лайкнули фото' });
+      return res.status(http2.ok).send({ message: 'Вы лайкнули фото' });
     })
-    .catch(() => { res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' }); });
+    .catch(() => { res.status(http2.serverError).send({ message: 'Server Error' }); });
 };
 
 // dislikeCard Card
@@ -65,11 +65,11 @@ const dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'Card not found' });
+        return res.status(http2.badRequest).send({ message: 'Card not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_OK).send('Вы удалили лайк');
+      return res.status(http2.ok).send(card);
     })
-    .catch(() => { res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' }); });
+    .catch(() => { res.status(http2.serverError).send({ message: 'Server Error' }); });
 };
 
 module.exports = {

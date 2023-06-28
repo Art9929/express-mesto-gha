@@ -1,9 +1,9 @@
-const http2 = require('node:http2');
+const http2 = require('../errors/index');
 const User = require('../models/user');
 
 // all users
 const getUsers = (req, res) => User.find({}).then((users) => {
-  res.status(http2.constants.HTTP_STATUS_OK).send(users);
+  res.status(http2.ok).send(users);
 });
 
 // one user
@@ -13,15 +13,15 @@ const getUserById = (req, res) => {
   return User.findById(id)
     .then((user) => {
       if (!user) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'User not found' });
+        return res.status(http2.notFound).send({ message: 'User not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_OK).send(user);
+      return res.status(http2.ok).send(user);
     })
     .catch((user) => {
       if (id !== user._id) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({ message: 'User not found' });
+        return res.status(http2.badRequest).send({ message: 'User not found' });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
@@ -30,14 +30,14 @@ const createUser = (req, res) => {
   const newUserData = req.body; // req.body - данные, которые ты отправляешь
 
   return User.create(newUserData)
-    .then((newUser) => { res.status(http2.constants.HTTP_STATUS_CREATED).send(newUser); })
+    .then((newUser) => { res.status(http2.created).send(newUser); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
+        return res.status(http2.badRequest).send({
           message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
         });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
@@ -48,17 +48,19 @@ const updateProfileUser = (req, res) => {
   return User.findByIdAndUpdate(
     req.user._id,
     { name, about },
+    {
+      new: true,
+      runValidators: true,
+    },
   )
     .then((updateProfile) => {
-      res.status(http2.constants.HTTP_STATUS_CREATED).send(updateProfile);
+      res.status(http2.ok).send(updateProfile);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
-        });
+        return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
@@ -71,15 +73,13 @@ const updateAvatar = (req, res) => {
     { avatar },
   )
     .then((updateAvatarUser) => {
-      res.status(http2.constants.HTTP_STATUS_CREATED).send(updateAvatarUser);
+      res.status(http2.ok).send(updateAvatarUser.avatar);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
-        });
+        return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({ message: 'Server Error' });
+      return res.status(http2.serverError).send({ message: 'Server Error' });
     });
 };
 
