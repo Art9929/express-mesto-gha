@@ -2,9 +2,9 @@ const http2 = require('../errors/index');
 const Card = require('../models/card');
 
 // all Cards
-const getCards = (req, res) => Card.find({}).then((cards) => {
-  res.status(http2.ok).send(cards);
-});
+const getCards = (req, res) => Card.find({})
+  .then((cards) => res.status(http2.ok).send(cards))
+  .catch(() => res.status(http2.serverError).send({ message: 'Server Error' }));
 
 // create Card
 const createCard = (req, res) => {
@@ -12,7 +12,7 @@ const createCard = (req, res) => {
   return Card.create({ name, link, owner: req.user._id })
     .then((newCard) => { res.status(http2.created).send(newCard); })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({
           message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
         });
@@ -32,8 +32,8 @@ const deleteCardById = (req, res) => {
       }
       return res.status(http2.ok).send({ message: 'Карточка удалена!' });
     })
-    .catch((card) => {
-      if (cardId !== card) {
+    .catch((err) => {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'Card not found' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
@@ -53,8 +53,8 @@ const likeCard = (req, res) => {
       }
       return res.status(http2.ok).send(card);
     })
-    .catch((card) => {
-      if (req.params.cardId !== card) {
+    .catch((err) => {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
@@ -74,8 +74,8 @@ const dislikeCard = (req, res) => {
       }
       return res.status(http2.ok).send(card);
     })
-    .catch((card) => {
-      if (req.params.cardId !== card) {
+    .catch((err) => {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });

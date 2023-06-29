@@ -2,9 +2,9 @@ const http2 = require('../errors/index');
 const User = require('../models/user');
 
 // all users
-const getUsers = (req, res) => User.find({}).then((users) => {
-  res.status(http2.ok).send(users);
-});
+const getUsers = (req, res) => User.find({})
+  .then((users) => res.status(http2.ok).send(users))
+  .catch(() => res.status(http2.serverError).send({ message: 'Server Error' }));
 
 // one user
 const getUserById = (req, res) => {
@@ -17,8 +17,8 @@ const getUserById = (req, res) => {
       }
       return res.status(http2.ok).send(user);
     })
-    .catch((user) => {
-      if (id !== user._id) {
+    .catch((err) => {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'User not found' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
@@ -32,7 +32,7 @@ const createUser = (req, res) => {
   return User.create(newUserData)
     .then((newUser) => { res.status(http2.created).send(newUser); })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({
           message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
         });
@@ -57,7 +57,7 @@ const updateProfileUser = (req, res) => {
       res.status(http2.ok).send(updateProfile);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
@@ -80,7 +80,7 @@ const updateAvatar = (req, res) => {
       res.status(http2.ok).send(updateAvatarUser);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
       }
       return res.status(http2.serverError).send({ message: 'Server Error' });
