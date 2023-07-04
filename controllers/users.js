@@ -19,19 +19,19 @@ const login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new BadRequest('Переданы некорректные данные!'));
+    throw next(new BadRequest('Переданы некорректные данные!'));
   }
 
   return User.findOne({ email }).select('+password')
     .then((admin) => {
       if (!admin) {
-        return next(new UnauthorizedError('Пользователь с таким email не существует!'));
+        throw next(new UnauthorizedError('Пользователь с таким email не существует!'));
       }
       // Load hash from your password DB.
       return bcrypt.compare(password, admin.password, (err, isPasswordMatch) => {
         // result == true
         if (!isPasswordMatch) {
-          return next(new UnauthorizedError('Неправильный пароль!'));
+          throw next(new UnauthorizedError('Неправильный пароль!'));
         }
         // Создать и отдать токен
         const token = generateToken(admin._id);
@@ -54,7 +54,7 @@ const getUserById = (req, res, next) => {
   return User.findById(id)
     .then((user) => {
       if (!user) {
-        return next(new NotFound('Пользователь не найден'));
+        throw next(new NotFound('Пользователь не найден'));
       }
       return res.status(ok).send(user);
     })
@@ -78,7 +78,7 @@ const createUser = (req, res, next) => {
   const { email, password } = req.body; // req.body - данные, которые ты отправляешь
 
   if (!email || !password) {
-    return next(new BadRequest('Переданы некорректные данные!'));
+    throw next(new BadRequest('Переданы некорректные данные!'));
   }
   // Найти пользователя по email
   // Если пользователя нет, то создать
@@ -86,7 +86,7 @@ const createUser = (req, res, next) => {
   return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
     // Store hash in your password DB.
     User.create({ email, password: hash })
-      .then((newUser) => { res.status(created).send(newUser); })
+      .then(() => { res.status(created).send({ message: 'Пользователь создан!' }); })
       .catch((err) => {
         if (err.name === 'ValidationError') {
           return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));

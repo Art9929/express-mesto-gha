@@ -33,11 +33,11 @@ const deleteCardById = (req, res, next) => {
 
   return Card.findById(cardId)
     .then((card) => {
-      if (!card) return next(new NotFound('Карточка не найдена!'));
-      if (card.owner.toString() !== req.user) return next(new ForbiddenError('Нет прав на удаление'));
+      if (!card) throw next(new NotFound('Карточка не найдена!'));
+      if (card.owner.toString() !== req.user) throw next(new ForbiddenError('Нет прав на удаление'));
       // Удаление
       Card.findByIdAndRemove(cardId);
-      return res.status(ok).send({ message: 'Карточка удалилась' });
+      return res.status(ok).send({ message: 'Карточка удалилась!' });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
@@ -56,7 +56,7 @@ const likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFound('Несуществующий id карточки!'));
+        throw next(new NotFound('Несуществующий id карточки!'));
       }
       return res.status(ok).send(card);
     })
@@ -77,7 +77,7 @@ const dislikeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return next(new NotFound('Несуществующий id карточки!'));
+        throw next(new NotFound('Несуществующий id карточки!'));
       }
       return res.status(ok).send(card);
     })
