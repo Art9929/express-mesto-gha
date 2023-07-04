@@ -1,84 +1,91 @@
-const http2 = require('../errors/index');
+const {
+  ForbiddenError, // 403
+  NotFound, // 404
+  BadRequest, // 400
+
+  // MODUL http2
+  ok, // 200
+  created, // 201
+} = require('../errors/index');
 const Card = require('../models/card');
 
 // all Cards
-const getCards = (req, res) => Card.find({})
-  .then((cards) => res.status(http2.ok).send(cards))
-  .catch(() => res.status(http2.serverError).send({ message: 'Server Error' }));
+const getCards = (req, res, next) => Card.find({})
+  .then((cards) => res.status(ok).send(cards))
+  .catch(next);
 
 // create Card
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body; // данные, которые отправляем
-  return Card.create({ name, link, owner: req.user._id })
-    .then((newCard) => { res.status(http2.created).send(newCard); })
+  return Card.create({ name, link, owner: req.user })
+    .then((newCard) => { res.status(created).send(newCard); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.badRequest).send({
-          message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
-        });
+        return next(new BadRequest('Переданы некорректные данные!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
 // delete card
-const deleteCardById = (req, res) => {
+const deleteCardById = (req, res, next) => {
   const { cardId } = req.params; // req.params - это данные в урле
 
-  return Card.findByIdAndRemove(cardId)
+  return Card.findById(cardId)
     .then((card) => {
-      if (!card) {
-        return res.status(http2.notFound).send({ message: 'Card not found' });
-      }
-      return res.status(http2.ok).send({ message: 'Карточка удалена!' });
+      if (!card) return next(new NotFound('Карточка не найдена!'));
+      if (card.owner.toString() !== req.user) return next(new ForbiddenError('Нет прав на удаление'));
+      // Удаление
+      Card.findByIdAndRemove(cardId);
+      return res.status(ok).send({ message: 'Карточка удалилась' });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(http2.badRequest).send({ message: 'Card not found' });
+        return next(new BadRequest('Карточа не найдена!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
 // Like Card
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
-    { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
+    { $addToSet: { likes: req.user } }, // добавить _id в массив, если его там нет
     { new: true },
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.notFound).send({ message: 'Несуществующий id карточки' });
+        return next(new NotFound('Несуществующий id карточки!'));
       }
-      return res.status(http2.ok).send(card);
+      return res.status(ok).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
+        return next(new BadRequest('Некорректный id карточки!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
 // dislikeCard Card
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
-    { $pull: { likes: req.user._id } }, // добавить _id в массив, если его там нет
+    { $pull: { likes: req.user } }, // добавить _id в массив, если его там нет
     { new: true },
   )
     .then((card) => {
       if (!card) {
-        return res.status(http2.notFound).send({ message: 'Несуществующий id карточки' });
+        return next(new NotFound('Несуществующий id карточки!'));
       }
-      return res.status(http2.ok).send(card);
+      return res.status(ok).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(http2.badRequest).send({ message: 'Некорректный id карточки' });
+        return next(new BadRequest('Некорректный id карточки!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 

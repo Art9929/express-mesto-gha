@@ -1,52 +1,110 @@
-const http2 = require('../errors/index');
+const bcrypt = require('bcrypt');
+const {
+  ConflictError, // 409
+  NotFound, // 404
+  UnauthorizedError, // 401
+  BadRequest, // 400
+
+  // MODUL http2
+  ok, // 200
+  created, // 201
+} = require('../errors/index');
 const User = require('../models/user');
+const { generateToken } = require('../util/jwt');
+
+const SALT_ROUNDS = 10;
+
+// Авторизация
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return next(new BadRequest('Переданы некорректные данные!'));
+  }
+
+  return User.findOne({ email }).select('+password')
+    .then((admin) => {
+      if (!admin) {
+        return next(new UnauthorizedError('Пользователь с таким email не существует!'));
+      }
+      // Load hash from your password DB.
+      return bcrypt.compare(password, admin.password, (err, isPasswordMatch) => {
+        // result == true
+        if (!isPasswordMatch) {
+          return next(new UnauthorizedError('Неправильный пароль!'));
+        }
+        // Создать и отдать токен
+        const token = generateToken(admin._id);
+        return res.status(ok).send({ token });
+      });
+    })
+    .catch(next);
+};
 
 // all users
-const getUsers = (req, res) => User.find({})
-  .then((users) => res.status(http2.ok).send(users))
-  .catch(() => res.status(http2.serverError).send({ message: 'Server Error' }));
+const getUsers = (req, res, next) => User.find({})
+  .then((users) => res.status(ok).send(users))
+  .catch(next);
 
 // one user
-const getUserById = (req, res) => {
-  const { id } = req.params; // req.params - это данные в урле
+const getUserById = (req, res, next) => {
+  // req.params - это данные в урле
+  const id = req.params.userId ? req.params.userId : req.user;
 
   return User.findById(id)
     .then((user) => {
       if (!user) {
-        return res.status(http2.notFound).send({ message: 'User not found' });
+        return next(new NotFound('Пользователь не найден'));
       }
-      return res.status(http2.ok).send(user);
+      return res.status(ok).send(user);
     })
     .catch((err) => {
+      /*
+      CastError
+      Эта ошибка возникает, если передан невалидный ID — идентификаторы
+      в MongoDB имеют определенную структуру.
+      Обычно эта ошибка возникает при любых манипуляциях,
+      где используется ID — поиск, удаление и другие.
+      */
       if (err.name === 'CastError') {
-        return res.status(http2.badRequest).send({ message: 'User not found' });
+        return next(new BadRequest('Переданы некорректные данные!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
-// create user
-const createUser = (req, res) => {
-  const newUserData = req.body; // req.body - данные, которые ты отправляешь
+// // Регистрация | create user
+const createUser = (req, res, next) => {
+  const { email, password } = req.body; // req.body - данные, которые ты отправляешь
 
-  return User.create(newUserData)
-    .then((newUser) => { res.status(http2.created).send(newUser); })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        return res.status(http2.badRequest).send({
-          message: `${Object.values(err.errors).map((error) => error.message).join(', ')}`,
-        });
-      }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
-    });
+  if (!email || !password) {
+    return next(new BadRequest('Переданы некорректные данные!'));
+  }
+  // Найти пользователя по email
+  // Если пользователя нет, то создать
+  // Если пользователь есть, то вернуть ошибку
+  return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
+    // Store hash in your password DB.
+    User.create({ email, password: hash })
+      .then((newUser) => { res.status(created).send(newUser); })
+      .catch((err) => {
+        if (err.name === 'ValidationError') {
+          return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
+        }
+        if (err.code === 11000) {
+          return next(new ConflictError('Пользователь с таким email уже существует!'));
+        }
+        return next(err);
+      });
+  });
 };
 
 // update profile
-const updateProfileUser = (req, res) => {
+const updateProfileUser = (req, res, next) => {
   const { name, about } = req.body;
 
   return User.findByIdAndUpdate(
-    req.user._id,
+    req.user,
     { name, about },
     {
       new: true,
@@ -54,22 +112,27 @@ const updateProfileUser = (req, res) => {
     },
   )
     .then((updateProfile) => {
-      res.status(http2.ok).send(updateProfile);
+      res.status(ok).send(updateProfile);
     })
     .catch((err) => {
+      /*
+      ValidationError - Эта ошибка возникает,
+      если данные не соответствуют схеме, которая описана для модели.
+      ValidationError обычно возникает при создании объекта или его обновления.
+      */
       if (err.name === 'ValidationError') {
-        return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
+        return next(new BadRequest('Переданы некорректные данные!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
 // update Avatar
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   return User.findByIdAndUpdate(
-    req.user._id,
+    req.user,
     { avatar },
     {
       new: true,
@@ -77,13 +140,13 @@ const updateAvatar = (req, res) => {
     },
   )
     .then((updateAvatarUser) => {
-      res.status(http2.ok).send(updateAvatarUser);
+      res.status(ok).send(updateAvatarUser);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(http2.badRequest).send({ message: 'Переданы некорректные данные!' });
+        return next(new BadRequest('Переданы некорректные данные!'));
       }
-      return res.status(http2.serverError).send({ message: 'Server Error' });
+      return next(err);
     });
 };
 
@@ -93,4 +156,5 @@ module.exports = {
   createUser,
   updateProfileUser,
   updateAvatar,
+  login,
 };

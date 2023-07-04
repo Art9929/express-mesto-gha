@@ -6,11 +6,13 @@ const {
   likeCard,
   dislikeCard,
 } = require('../controllers/cards');
+// Валидация до записи в базу данных
+const celebrates = require('../middlewares/celebrates');
 
 router.get('/', getCards);
-router.post('/', createCard);
-router.delete('/:cardId', deleteCardById);
-router.put('/:cardId/likes', likeCard);
-router.delete('/:cardId/likes', dislikeCard);
+router.post('/', celebrates.createCard, createCard);
+router.delete('/:cardId', celebrates.getCard, deleteCardById);
+router.put('/:cardId/likes', celebrates.getCard, likeCard);
+router.delete('/:cardId/likes', celebrates.getCard, dislikeCard);
 
 module.exports = router;

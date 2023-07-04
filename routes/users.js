@@ -2,15 +2,16 @@ const router = require('express').Router();
 const {
   getUsers,
   getUserById,
-  createUser,
   updateProfileUser,
   updateAvatar,
 } = require('../controllers/users');
+// Валидация до записи в базу данных
+const celebrates = require('../middlewares/celebrates');
 
 router.get('/', getUsers);
-router.get('/:id', getUserById);
-router.post('/', createUser);
-router.patch('/me', updateProfileUser);
-router.patch('/me/avatar', updateAvatar);
+router.get('/me', getUserById);
+router.get('/:id', celebrates.getUser, getUserById);
+router.patch('/me', celebrates.updateUser, updateProfileUser);
+router.patch('/me/avatar', celebrates.updateAvatar, updateAvatar);
 
 module.exports = router;

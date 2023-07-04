@@ -18,14 +18,6 @@ const app = express();
 
 // app.use(express.static(path.join(__dirname, 'public'))); // подключаем фронт
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '649804fbccc787e3364a11c4', // вставьте сюда _id созданного в предыдущем пункте пользователя
-  };
-
-  next();
-});
-
 app.use(express.json()); // то, что позволит обрабатывать json при методе post
 
 app.use(routes); // Подключаем роуты
