@@ -86,7 +86,7 @@ const createUser = (req, res, next) => {
   return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
     // Store hash in your password DB.
     User.create({ email, password: hash })
-      .then(() => { res.status(created).send({ message: 'Пользователь создан!' }); })
+      .then((user) => { res.status(created).send(user); })
       .catch((err) => {
         if (err.name === 'ValidationError') {
           return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
