@@ -4,19 +4,18 @@ const JWT_SECRET = require('../util/key');
 // Верификация Токена
 function auth(req, res, next) {
   let token = req.headers.cookie;
-  token = token.split('=');
   let payload = '';
 
   if (!token) {
-    return res.status(401).send(req.headers);
+    res.status(401).send({ message: 'Нет токена' });
+  } else {
+    token = token.split('=');
+    payload = jwt.verify(token[1], JWT_SECRET, (err, decoded) => {
+      // Неверный токен
+      if (err) res.status(401).send({ message: 'Ошибка токена (не верный токен)' });
+      return decoded.id;
+    });
   }
-
-  payload = jwt.verify(token[1], JWT_SECRET, (err, decoded) => {
-    // Неверный токен
-    if (err) res.status(401).send(token[1]);
-    return decoded.id;
-  });
-
   req.user = payload;
   return next();
 }

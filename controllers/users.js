@@ -50,7 +50,7 @@ const getUsers = (req, res, next) => User.find({})
 // one user
 const getUserById = (req, res, next) => {
   // req.params - это данные в урле
-  const id = req.params.userId ? req.params.userId : req.user;
+  const id = req.params.id ? req.params.id : req.user;
 
   return User.findById(id)
     .then((user) => {
@@ -67,7 +67,7 @@ const getUserById = (req, res, next) => {
       Обычно эта ошибка возникает при любых манипуляциях,
       где используется ID — поиск, удаление и другие.
       */
-      if (err.name === 'CastError') {
+      if (err === 'CastError') {
         return next(new BadRequest('Переданы некорректные данные!'));
       }
       return next(err);

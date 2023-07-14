@@ -23,7 +23,7 @@ const registerUser = celebrate({
 
 const getUser = celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().length(24),
+    id: Joi.string().length(24),
   }),
 });
 

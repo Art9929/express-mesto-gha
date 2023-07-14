@@ -36,8 +36,10 @@ const deleteCardById = (req, res, next) => {
       if (!card) throw next(new NotFound('Несуществующий id карточки!'));
       if (card.owner.toString() !== req.user) throw next(new ForbiddenError('Нет прав на удаление'));
       // Удаление
-      Card.findByIdAndRemove(cardId);
-      return res.status(ok).send({ message: 'Карточка удалилась!' });
+      return Card.findByIdAndRemove(cardId);
+    })
+    .then(() => {
+      res.status(ok).send({ message: 'Карточка удалилась!' });
     })
     .catch((err) => {
       if (err === 'CastError') {
