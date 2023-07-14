@@ -33,15 +33,15 @@ const deleteCardById = (req, res, next) => {
 
   return Card.findById(cardId)
     .then((card) => {
-      if (!card) throw next(new NotFound('Карточка не найдена!'));
+      if (!card) throw next(new NotFound('Несуществующий id карточки!'));
       if (card.owner.toString() !== req.user) throw next(new ForbiddenError('Нет прав на удаление'));
       // Удаление
       Card.findByIdAndRemove(cardId);
       return res.status(ok).send({ message: 'Карточка удалилась!' });
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        return next(new BadRequest('Карточа не найдена!'));
+      if (err === 'CastError') {
+        return next(new BadRequest('Некорректный id карточки!'));
       }
       return next(err);
     });

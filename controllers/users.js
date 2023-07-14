@@ -25,7 +25,7 @@ const login = (req, res, next) => {
   return User.findOne({ email }).select('+password')
     .then((admin) => {
       if (!admin) {
-        throw next(new UnauthorizedError('Пользователь с таким email не существует!'));
+        throw next(new UnauthorizedError('Пользователя с таким email не существует!'));
       }
       // Load hash from your password DB.
       return bcrypt.compare(password, admin.password, (err, isPasswordMatch) => {
@@ -35,6 +35,7 @@ const login = (req, res, next) => {
         }
         // Создать и отдать токен
         const token = generateToken(admin._id);
+        res.cookie('auth', token);
         return res.status(ok).send({ token });
       });
     })
@@ -75,7 +76,10 @@ const getUserById = (req, res, next) => {
 
 // // Регистрация | create user
 const createUser = (req, res, next) => {
-  const { email, password } = req.body; // req.body - данные, которые ты отправляешь
+  // req.body - данные, которые ты отправляешь
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
 
   if (!email || !password) {
     throw next(new BadRequest('Переданы некорректные данные!'));
@@ -85,7 +89,9 @@ const createUser = (req, res, next) => {
   // Если пользователь есть, то вернуть ошибку
   return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
     // Store hash in your password DB.
-    User.create({ email, password: hash })
+    User.create({
+      name, about, avatar, email, password: hash,
+    })
       .then((user) => { res.status(created).send(user); })
       .catch((err) => {
         if (err.name === 'ValidationError') {
