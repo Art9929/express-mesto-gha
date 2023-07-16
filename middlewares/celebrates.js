@@ -23,7 +23,7 @@ const registerUser = celebrate({
 
 const getUser = celebrate({
   params: Joi.object().keys({
-    id: Joi.string().length(24),
+    id: Joi.string().length(24).hex(),
   }),
 });
 
@@ -49,7 +49,7 @@ const createCard = celebrate({
 
 const getCard = celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().length(24),
+    cardId: Joi.string().length(24).hex(),
   }),
 });
 

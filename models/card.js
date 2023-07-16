@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   link: {
+    validate: /^https?:\/\/(www)?[0-9a-z\-._~:/?#[\]@!$&'()*+,;=]+#?$/i,
     type: String,
     required: true,
   },

@@ -4,8 +4,6 @@ const {
   NotFound, // 404
   UnauthorizedError, // 401
   BadRequest, // 400
-
-  // MODUL http2
   ok, // 200
   created, // 201
 } = require('../errors/index');
@@ -18,23 +16,17 @@ const SALT_ROUNDS = 10;
 const login = (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    throw next(new BadRequest('Переданы некорректные данные!'));
-  }
-
   return User.findOne({ email }).select('+password')
-    .then((admin) => {
-      if (!admin) {
-        throw next(new UnauthorizedError('Пользователя с таким email не существует!'));
+    .then((user) => {
+      if (!user) {
+        throw new UnauthorizedError('Не верно введен email или пароль!');
       }
-      // Load hash from your password DB.
-      return bcrypt.compare(password, admin.password, (err, isPasswordMatch) => {
-        // result == true
+      return bcrypt.compare(password, user.password, (err, isPasswordMatch) => {
         if (!isPasswordMatch) {
-          throw next(new UnauthorizedError('Неправильный пароль!'));
+          throw new UnauthorizedError('Неправильный пароль!');
         }
         // Создать и отдать токен
-        const token = generateToken(admin._id);
+        const token = generateToken(user._id);
         res.cookie('auth', token);
         return res.status(ok).send({ token });
       });
@@ -49,24 +41,16 @@ const getUsers = (req, res, next) => User.find({})
 
 // one user
 const getUserById = (req, res, next) => {
-  // req.params - это данные в урле
-  const id = req.params.id ? req.params.id : req.user;
+  const id = req.params.id ? req.params.id : req.user._id;
 
   return User.findById(id)
     .then((user) => {
       if (!user) {
-        throw next(new NotFound('Пользователь не найден'));
+        throw new NotFound('Пользователь не найден');
       }
       return res.status(ok).send(user);
     })
     .catch((err) => {
-      /*
-      CastError
-      Эта ошибка возникает, если передан невалидный ID — идентификаторы
-      в MongoDB имеют определенную структуру.
-      Обычно эта ошибка возникает при любых манипуляциях,
-      где используется ID — поиск, удаление и другие.
-      */
       if (err === 'CastError') {
         return next(new BadRequest('Переданы некорректные данные!'));
       }
@@ -74,35 +58,37 @@ const getUserById = (req, res, next) => {
     });
 };
 
-// // Регистрация | create user
+// Регистрация | create user
 const createUser = (req, res, next) => {
-  // req.body - данные, которые ты отправляешь
   const {
     name, about, avatar, email, password,
   } = req.body;
 
-  if (!email || !password) {
-    throw next(new BadRequest('Переданы некорректные данные!'));
-  }
-  // Найти пользователя по email
-  // Если пользователя нет, то создать
-  // Если пользователь есть, то вернуть ошибку
-  return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
-    // Store hash in your password DB.
-    User.create({
+  return bcrypt.hash(password, SALT_ROUNDS)
+    .then((hash) => User.create({
       name, about, avatar, email, password: hash,
+    }))
+    .then((user) => {
+      // Неработающие методы:
+      // const userWithoutPassword = user;
+      // delete userWithoutPassword.password;
+      // delete userWithoutPassword['password'];
+      // const prop = "password";
+      // delete userWithoutPassword[prop];
+      // const { password, ...newObject } = user;
+      // Reflect.deleteProperty(user, 'password');
+      const {_id, name, about, avatar, email, ...a} = user;
+      res.status(created).send({ _id, name, about, avatar, email });
     })
-      .then((user) => { res.status(created).send(user); })
-      .catch((err) => {
-        if (err.name === 'ValidationError') {
-          return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
-        }
-        if (err.code === 11000) {
-          return next(new ConflictError('Пользователь с таким email уже существует!'));
-        }
-        return next(err);
-      });
-  });
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
+      }
+      if (err.code === 11000) {
+        return next(new ConflictError('Пользователь с таким email уже существует!'));
+      }
+      return next(err);
+    });
 };
 
 // update profile
@@ -121,11 +107,6 @@ const updateProfileUser = (req, res, next) => {
       res.status(ok).send(updateProfile);
     })
     .catch((err) => {
-      /*
-      ValidationError - Эта ошибка возникает,
-      если данные не соответствуют схеме, которая описана для модели.
-      ValidationError обычно возникает при создании объекта или его обновления.
-      */
       if (err.name === 'ValidationError') {
         return next(new BadRequest('Переданы некорректные данные!'));
       }

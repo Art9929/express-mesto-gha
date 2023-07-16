@@ -33,8 +33,8 @@ const deleteCardById = (req, res, next) => {
 
   return Card.findById(cardId)
     .then((card) => {
-      if (!card) throw next(new NotFound('Несуществующий id карточки!'));
-      if (card.owner.toString() !== req.user) throw next(new ForbiddenError('Нет прав на удаление'));
+      if (!card) return next(new NotFound('Несуществующий id карточки!'));
+      if (card.owner.toString() !== req.user) return next(new ForbiddenError('Нет прав на удаление'));
       // Удаление
       return Card.findByIdAndRemove(cardId);
     })
@@ -58,7 +58,7 @@ const likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        throw next(new NotFound('Несуществующий id карточки!'));
+        return next(new NotFound('Несуществующий id карточки!'));
       }
       return res.status(ok).send(card);
     })
@@ -79,7 +79,7 @@ const dislikeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        throw next(new NotFound('Несуществующий id карточки!'));
+        return next(new NotFound('Несуществующий id карточки!'));
       }
       return res.status(ok).send(card);
     })
