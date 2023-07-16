@@ -13,7 +13,7 @@ function auth(req, res, next) {
   else {
     try {
       token = token.split('=');
-      payload = jwt.verify(token[1], JWT_SECRET, (err, decoded) => decoded.id);
+      payload = jwt.verify(token[1], JWT_SECRET);
     } catch {
       return next(new UnauthorizedError('Ошибка токена (не верный токен)'));
     }

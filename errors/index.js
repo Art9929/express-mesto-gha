@@ -4,7 +4,7 @@ const ConflictError = require('./ConflictError');
 const ForbiddenError = require('./ForbiddenError');
 const NotFound = require('./NotFound');
 const UnauthorizedError = require('./UnauthorizedError');
-const { BadRequest } = require('./BadRequest');
+const BadRequest = require('./BadRequest');
 
 // MODUL http2
 const ok = http2.constants.HTTP_STATUS_OK; // 200

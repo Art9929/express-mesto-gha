@@ -17,7 +17,7 @@ const getCards = (req, res, next) => Card.find({})
 // create Card
 const createCard = (req, res, next) => {
   const { name, link } = req.body; // данные, которые отправляем
-  return Card.create({ name, link, owner: req.user })
+  return Card.create({ name, link, owner: req.user.id })
     .then((newCard) => { res.status(created).send(newCard); })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -33,8 +33,8 @@ const deleteCardById = (req, res, next) => {
 
   return Card.findById(cardId)
     .then((card) => {
-      if (!card) return next(new NotFound('Несуществующий id карточки!'));
-      if (card.owner.toString() !== req.user) return next(new ForbiddenError('Нет прав на удаление'));
+      if (!card) throw new NotFound('Несуществующий id карточки!');
+      if (card.owner.toString() !== req.user.id) throw next(new ForbiddenError('Нет прав на удаление'));
       // Удаление
       return Card.findByIdAndRemove(cardId);
     })
@@ -53,7 +53,7 @@ const deleteCardById = (req, res, next) => {
 const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
-    { $addToSet: { likes: req.user } }, // добавить _id в массив, если его там нет
+    { $addToSet: { likes: req.user.id } }, // добавить _id в массив, если его там нет
     { new: true },
   )
     .then((card) => {
@@ -74,7 +74,7 @@ const likeCard = (req, res, next) => {
 const dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
-    { $pull: { likes: req.user } }, // добавить _id в массив, если его там нет
+    { $pull: { likes: req.user.id } }, // добавить _id в массив, если его там нет
     { new: true },
   )
     .then((card) => {

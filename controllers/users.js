@@ -41,7 +41,7 @@ const getUsers = (req, res, next) => User.find({})
 
 // one user
 const getUserById = (req, res, next) => {
-  const id = req.params.id ? req.params.id : req.user._id;
+  const id = req.params.id ? req.params.id : req.user.id;
 
   return User.findById(id)
     .then((user) => {
@@ -64,31 +64,25 @@ const createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  return bcrypt.hash(password, SALT_ROUNDS)
-    .then((hash) => User.create({
+  return bcrypt.hash(password, SALT_ROUNDS, (error, hash) => {
+    User.create({
       name, about, avatar, email, password: hash,
-    }))
-    .then((user) => {
-      // Неработающие методы:
-      // const userWithoutPassword = user;
-      // delete userWithoutPassword.password;
-      // delete userWithoutPassword['password'];
-      // const prop = "password";
-      // delete userWithoutPassword[prop];
-      // const { password, ...newObject } = user;
-      // Reflect.deleteProperty(user, 'password');
-      const {_id, name, about, avatar, email, ...a} = user;
-      res.status(created).send({ _id, name, about, avatar, email });
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
-      }
-      if (err.code === 11000) {
-        return next(new ConflictError('Пользователь с таким email уже существует!'));
-      }
-      return next(err);
-    });
+      .then((user) => {
+        const userWithoutPassword = user.toJSON();
+        delete userWithoutPassword.password;
+        res.status(created).send(userWithoutPassword);
+      })
+      .catch((err) => {
+        if (err.name === 'ValidationError') {
+          return next(new BadRequest('Переданы некорректные данные при создании пользователя!'));
+        }
+        if (err.code === 11000) {
+          return next(new ConflictError('Пользователь с таким email уже существует!'));
+        }
+        return next(err);
+      });
+  });
 };
 
 // update profile
@@ -96,7 +90,7 @@ const updateProfileUser = (req, res, next) => {
   const { name, about } = req.body;
 
   return User.findByIdAndUpdate(
-    req.user,
+    req.user.id,
     { name, about },
     {
       new: true,
@@ -119,7 +113,7 @@ const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   return User.findByIdAndUpdate(
-    req.user,
+    req.user.id,
     { avatar },
     {
       new: true,
